@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { EmployeeCard } from "@/components/portal/employee-card";
 import { PageHeader } from "@/components/portal/page-header";
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
-import { isRole, roleNames } from "@/lib/data";
+import { getProjectByName, isRole, roleNames } from "@/lib/data";
 import { listEmployees } from "@/lib/server/aems-service";
 import { formatCurrency } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ export default async function EmployeesPage({
 
   const employees = await listEmployees(role);
   const employee = role === "employee" ? employees[0] : undefined;
+  const currentProject = employee ? getProjectByName(employee.project) : null;
 
   return (
     <div className="space-y-6">
@@ -68,10 +70,28 @@ export default async function EmployeesPage({
           <div className="mt-6 space-y-6">
             <section className="grid gap-4 md:grid-cols-3">
               {[
-                ["Current Project", employee.project],
-                ["Latest Payout", formatCurrency(employee.latestPayout)],
-                ["Next Renewal", employee.nextRenewal],
-              ].map(([label, value]) => (
+                {
+                  label: "Current Project",
+                  value: currentProject ? (
+                    <Link
+                      href={`/portal/${role}/projects/${currentProject.slug}`}
+                      className="transition hover:text-cyan-100"
+                    >
+                      {employee.project}
+                    </Link>
+                  ) : (
+                    employee.project
+                  ),
+                },
+                {
+                  label: "Latest Payout",
+                  value: formatCurrency(employee.latestPayout),
+                },
+                {
+                  label: "Next Renewal",
+                  value: employee.nextRenewal,
+                },
+              ].map(({ label, value }) => (
                 <SpotlightPanel key={label} className="p-5">
                   <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">{label}</p>
                   <p className="mt-3 font-heading text-2xl text-white">{value}</p>

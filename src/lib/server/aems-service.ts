@@ -898,7 +898,7 @@ export async function getDepartmentDetail(role: Role, departmentId: string) {
   return departments.find((department) => department.id === departmentId);
 }
 
-export async function listEmployees(role: Role) {
+export async function listEmployees(role: Role): Promise<EmployeeApiRecord[]> {
   if (getBackendMode() === "demo") {
     return getRoleScopedDemoEmployees(role).map(mapDemoEmployee);
   }
@@ -907,14 +907,17 @@ export async function listEmployees(role: Role) {
   return employees.map(mapDatabaseEmployee);
 }
 
-export async function getEmployeeDetail(role: Role, employeeId: string) {
+export async function getEmployeeDetail(
+  role: Role,
+  employeeId: string,
+): Promise<EmployeeApiRecord | undefined> {
   const employees = await listEmployees(role);
   return employees.find(
     (employee) => employee.id === employeeId || employee.employeeCode === employeeId,
   );
 }
 
-export async function listProjects(role: Role) {
+export async function listProjects(role: Role): Promise<ProjectApiRecord[]> {
   if (getBackendMode() === "demo") {
     const visibleProjectNames = new Set(getRoleScopedDemoEmployees(role).map((employee) => employee.project));
     return projectRecords
@@ -964,7 +967,10 @@ export async function listProjects(role: Role) {
   return mapped.filter((project) => visibleProjectNames.has(project.name));
 }
 
-export async function getProjectDetail(role: Role, projectSlug: string) {
+export async function getProjectDetail(
+  role: Role,
+  projectSlug: string,
+): Promise<ProjectApiRecord | undefined> {
   const projects = await listProjects(role);
   return projects.find((project) => project.slug === projectSlug);
 }
