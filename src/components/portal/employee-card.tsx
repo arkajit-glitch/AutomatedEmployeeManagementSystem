@@ -2,14 +2,31 @@ import Link from "next/link";
 
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
 import { StatusPill } from "@/components/ui/status-pill";
-import { EmployeeRecord, Role, roleNames } from "@/lib/data";
+import { getProjectByName, Role, roleNames } from "@/lib/data";
+
+type EmployeeCardRecord = {
+  id: string;
+  name: string;
+  role: string;
+  accessRole: Role;
+  department: string;
+  avatar: string;
+  status: string;
+  email: string;
+  phone: string;
+  location: string;
+  project: string;
+  manager: string;
+};
 
 type EmployeeCardProps = {
-  employee: EmployeeRecord;
+  employee: EmployeeCardRecord;
   role: Role;
 };
 
 export function EmployeeCard({ employee, role }: EmployeeCardProps) {
+  const project = getProjectByName(employee.project);
+
   return (
     <SpotlightPanel className="h-full p-6">
       <div className="flex h-full flex-col">
@@ -49,7 +66,18 @@ export function EmployeeCard({ employee, role }: EmployeeCardProps) {
         <div className="mt-6 grid flex-1 gap-4 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[26px] border border-cyan-300/12 bg-[linear-gradient(145deg,rgba(34,211,238,0.12),rgba(15,23,42,0.45))] p-5 text-left">
             <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">Current Project</p>
-            <h4 className="mt-3 text-2xl font-semibold text-white">{employee.project}</h4>
+            <h4 className="mt-3 text-2xl font-semibold text-white">
+              {project ? (
+                <Link
+                  href={`/portal/${role}/projects/${project.slug}`}
+                  className="transition hover:text-cyan-100"
+                >
+                  {employee.project}
+                </Link>
+              ) : (
+                employee.project
+              )}
+            </h4>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Manager</p>

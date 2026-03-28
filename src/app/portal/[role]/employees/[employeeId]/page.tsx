@@ -1,10 +1,12 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AccessDenied } from "@/components/portal/access-denied";
 import { PageHeader } from "@/components/portal/page-header";
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
 import { StatusPill } from "@/components/ui/status-pill";
-import { employeeRecords, getVisibleEmployees, isRole, roleNames } from "@/lib/data";
+import { getProjectByName, isRole, roleNames } from "@/lib/data";
+import { listEmployees } from "@/lib/server/aems-service";
 import { formatCurrency } from "@/lib/utils";
 
 export default async function EmployeeDetailPage({
@@ -18,15 +20,12 @@ export default async function EmployeeDetailPage({
     notFound();
   }
 
-  const employee = employeeRecords.find((entry) => entry.id === employeeId);
+  const visibleEmployees = await listEmployees(role);
+  const employee = visibleEmployees.find(
+    (entry) => entry.id === employeeId || entry.employeeCode === employeeId,
+  );
 
   if (!employee) {
-    notFound();
-  }
-
-  const visibleIds = new Set(getVisibleEmployees(role).map((entry) => entry.id));
-
-  if (!visibleIds.has(employee.id)) {
     return (
       <AccessDenied
         title="That employee record is outside your access scope."
@@ -34,6 +33,8 @@ export default async function EmployeeDetailPage({
       />
     );
   }
+
+  const project = getProjectByName(employee.project);
 
   return (
     <div className="space-y-6">
@@ -101,13 +102,25 @@ export default async function EmployeeDetailPage({
             <h3 className="font-heading text-2xl text-white">Profile details</h3>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {[
-                ["Email", employee.email],
-                ["Phone", employee.phone],
-                ["Experience", employee.experience],
-                ["Current project", employee.project],
-                ["Last appraisal", employee.lastAppraisal],
-                ["Contract expiry", employee.contractExpiry],
-              ].map(([label, value]) => (
+                { label: "Email", value: employee.email },
+                { label: "Phone", value: employee.phone },
+                { label: "Experience", value: employee.experience },
+                {
+                  label: "Current project",
+                  value: project ? (
+                    <Link
+                      href={`/portal/${role}/projects/${project.slug}`}
+                      className="transition hover:text-cyan-100"
+                    >
+                      {employee.project}
+                    </Link>
+                  ) : (
+                    employee.project
+                  ),
+                },
+                { label: "Last appraisal", value: employee.lastAppraisal },
+                { label: "Contract expiry", value: employee.contractExpiry },
+              ].map(({ label, value }) => (
                 <div key={label} className="rounded-2xl border border-white/12 bg-white/8 p-4">
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
                   <p className="mt-2 text-sm leading-7 text-slate-200">{value}</p>
@@ -245,7 +258,18 @@ export default async function EmployeeDetailPage({
             <h3 className="font-heading text-2xl text-white">Project involvement</h3>
             <div className="mt-4 rounded-[24px] border border-white/12 bg-white/8 p-5">
               <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">Assigned project</p>
-              <p className="mt-3 text-xl font-semibold text-white">{employee.project}</p>
+              <p className="mt-3 text-xl font-semibold text-white">
+                {project ? (
+                  <Link
+                    href={`/portal/${role}/projects/${project.slug}`}
+                    className="transition hover:text-cyan-100"
+                  >
+                    {employee.project}
+                  </Link>
+                ) : (
+                  employee.project
+                )}
+              </p>
               <p className="mt-3 text-sm leading-7 text-slate-300">
                 Current manager: {employee.manager}. Status updates and daily progress stay visible
                 according to the signed-in role.

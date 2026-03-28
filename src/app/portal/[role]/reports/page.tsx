@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { AccessDenied } from "@/components/portal/access-denied";
 import { PageHeader } from "@/components/portal/page-header";
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
-import { canAccess, isRole, reportHighlights, roleNames } from "@/lib/data";
+import { canAccess, isRole, roleNames } from "@/lib/data";
+import { getReportPayload } from "@/lib/server/aems-service";
 
 export default async function ReportsPage({
   params,
@@ -25,6 +26,8 @@ export default async function ReportsPage({
     );
   }
 
+  const report = await getReportPayload(role);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -38,7 +41,7 @@ export default async function ReportsPage({
       />
 
       <section className="grid gap-4 xl:grid-cols-3">
-        {reportHighlights.map((highlight) => (
+        {report.highlights.map((highlight) => (
           <SpotlightPanel key={highlight.title} className="p-6">
             <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">Insight</p>
             <h2 className="mt-3 font-heading text-2xl text-white">{highlight.title}</h2>
@@ -61,17 +64,12 @@ export default async function ReportsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10 bg-white/8 text-sm text-slate-200">
-              {[
-                ["Headcount coverage", "47 active", "Stable", "Fill 3 open roles in Operations"],
-                ["Document completion", "94%", "Up 6%", "Chase pending verification proofs"],
-                ["Appraisal closure", "86%", "Up 9%", "Finalize remaining manager reviews"],
-                ["Renewal compliance", "8 due soon", "Needs focus", "Lock dates before payroll cycle"],
-              ].map(([metric, current, trend, note]) => (
-                <tr key={metric}>
-                  <td className="px-4 py-4">{metric}</td>
-                  <td className="px-4 py-4">{current}</td>
-                  <td className="px-4 py-4">{trend}</td>
-                  <td className="px-4 py-4">{note}</td>
+              {report.rows.map((row) => (
+                <tr key={row.metric}>
+                  <td className="px-4 py-4">{row.metric}</td>
+                  <td className="px-4 py-4">{row.current}</td>
+                  <td className="px-4 py-4">{row.trend}</td>
+                  <td className="px-4 py-4">{row.note}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccessRole {
+  OWNER
+  HR
+  MANAGER
+  EMPLOYEE
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  PROBATION
+}
+
+enum DepartmentHealth {
+  HEALTHY
+  HIRING
+  NEEDS_REVIEW
+}
+
+enum ProjectStatus {
+  ON_TRACK
+  AT_RISK
+  PLANNING
+}
+
+enum DocumentState {
+  VERIFIED
+  PENDING
+}
+
+enum TransactionStatus {
+  PAID
+  SCHEDULED
+}
+
+enum ContractRenewalStatus {
+  RENEWED
+  DUE_SOON
+}
+
+model Department {
+  id        String           @id @default(cuid())
+  name      String           @unique
+  code      String           @unique
+  headName  String
+  openRoles Int              @default(0)
+  health    DepartmentHealth
+  employees Employee[]
+  projects  Project[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model Project {
+  id               String              @id @default(cuid())
+  slug             String              @unique
+  name             String              @unique
+  topic            String
+  summary          String
+  overview         String
+  client           String
+  leadName         String
+  status           ProjectStatus
+  startDate        DateTime
+  deadline         DateTime
+  endDate          DateTime
+  membersCount     Int
+  objectives       Json
+  deliverables     Json
+  stack            Json
+  departmentId     String
+  department       Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  currentEmployees Employee[]          @relation("EmployeeCurrentProject")
+  assignments      ProjectAssignment[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+}
+
+model Employee {
+  id                 String                @id @default(cuid())
+  employeeCode       String                @unique
+  fullName           String
+  jobTitle           String
+  accessRole         AccessRole
+  status             EmploymentStatus
+  email              String                @unique
+  phone              String
+  experience         String
+  location           String
+  managerName        String
+  currencyCode       String                @default("INR")
+  currentSalary      Int
+  latestPayout       Int
+  nextRenewal        DateTime
+  contractExpiry     DateTime
+  lastAppraisalCycle String
+  lastHikePercent    Int                   @default(0)
+  avatar             String
+  departmentId       String
+  currentProjectId   String?
+  department         Department            @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  currentProject     Project?              @relation("EmployeeCurrentProject", fields: [currentProjectId], references: [id], onDelete: SetNull)
+  achievements       Achievement[]
+  documents          EmployeeDocument[]
+  appraisals         Appraisal[]
+  salaryChanges      SalaryChange[]
+  contractRenewals   ContractRenewal[]
+  payrollTransactions PayrollTransaction[]
+  projectAssignments ProjectAssignment[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+}
+
+model Achievement {
+  id         String   @id @default(cuid())
+  body       String
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}
+
+model EmployeeDocument {
+  id         String        @id @default(cuid())
+  label      String
+  state      DocumentState
+  employeeId String
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime      @default(now())
+}
+
+model Appraisal {
+  id           String   @id @default(cuid())
+  cycle        String
+  rating       String
+  reviewerName String
+  summary      String
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+}
+
+model SalaryChange {
+  id             String   @id @default(cuid())
+  effectiveDate  DateTime
+  previousAmount Int
+  updatedAmount  Int
+  reason         String
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+}
+
+model ContractRenewal {
+  id         String                @id @default(cuid())
+  term       String
+  renewedOn  DateTime
+  expiresOn  DateTime
+  status     ContractRenewalStatus
+  employeeId String
+  employee   Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime              @default(now())
+}
+
+model PayrollTransaction {
+  id              String            @id @default(cuid())
+  transactionDate DateTime
+  amount          Int
+  note            String
+  status          TransactionStatus
+  employeeId      String
+  employee        Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt       DateTime          @default(now())
+}
+
+model ProjectAssignment {
+  id         String   @id @default(cuid())
+  employeeId String
+  projectId  String
+  roleLabel  String?
+  assignedAt DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, projectId])
+}

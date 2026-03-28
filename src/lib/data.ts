@@ -95,13 +95,22 @@ export type DepartmentRecord = {
 };
 
 export type ProjectRecord = {
+  slug: string;
   name: string;
+  topic: string;
   lead: string;
   department: string;
   status: "On Track" | "At Risk" | "Planning";
+  startDate: string;
   deadline: string;
+  endDate: string;
+  client: string;
   summary: string;
+  overview: string;
   members: number;
+  objectives: string[];
+  deliverables: string[];
+  stack: string[];
 };
 
 export type DashboardDrilldown = {
@@ -113,6 +122,7 @@ export type DashboardDrilldown = {
     subtitle: string;
     value?: string;
     status?: string;
+    href?: string;
   }>;
 };
 
@@ -228,34 +238,88 @@ export const departmentRecords: DepartmentRecord[] = [
 
 export const projectRecords: ProjectRecord[] = [
   {
+    slug: "aems-core-rollout",
     name: "AEMS Core Rollout",
+    topic: "Employee management platform delivery",
     lead: "Ravi Mehta",
     department: "Engineering",
     status: "On Track",
+    startDate: "15 Jan 2026",
     deadline: "15 Apr 2026",
+    endDate: "15 Apr 2026",
+    client: "Internal Operations",
     summary:
       "Employee records, payroll privacy, and role-aware dashboards are in active delivery.",
+    overview:
+      "This project covers the first production-ready version of the Automated Employee Management System, including role-aware dashboards, employee lifecycle views, payroll privacy controls, and project tracking surfaces.",
     members: 14,
+    objectives: [
+      "Unify fragmented HR and employee workflows into one platform.",
+      "Provide role-based dashboards for Owner, HR, Manager, and Employee users.",
+      "Protect payroll visibility while keeping employee self-service intact.",
+    ],
+    deliverables: [
+      "Employee profile and detail workflows",
+      "Payroll and appraisal visibility controls",
+      "Interactive dashboard and reporting views",
+    ],
+    stack: ["Next.js", "TypeScript", "Tailwind CSS", "Role-based UI architecture"],
   },
   {
+    slug: "quarterly-appraisal-cycle",
     name: "Quarterly Appraisal Cycle",
+    topic: "Performance review operations",
     lead: "Neha Sharma",
     department: "Human Resources",
     status: "Planning",
+    startDate: "01 Apr 2026",
     deadline: "22 Apr 2026",
+    endDate: "30 Apr 2026",
+    client: "HR Leadership",
     summary:
       "Review templates, reviewer assignments, and hike recommendations are being prepared.",
+    overview:
+      "This initiative structures the quarterly review process, including reviewer mapping, rating calibration, appraisal documentation, and hike recommendation preparation.",
     members: 9,
+    objectives: [
+      "Finalize appraisal templates for all active departments.",
+      "Align reviewer responsibilities and deadlines.",
+      "Prepare salary hike recommendations from review outcomes.",
+    ],
+    deliverables: [
+      "Quarterly review templates",
+      "Reviewer assignment matrix",
+      "Appraisal and hike recommendation summary",
+    ],
+    stack: ["Internal HR workflows", "Performance records", "Review scheduling"],
   },
   {
+    slug: "finance-sync-upgrade",
     name: "Finance Sync Upgrade",
+    topic: "Payroll reconciliation and finance controls",
     lead: "Aditi Rao",
     department: "Finance",
     status: "At Risk",
+    startDate: "10 Feb 2026",
     deadline: "30 Apr 2026",
+    endDate: "30 Apr 2026",
+    client: "Finance Operations",
     summary:
       "Pending payroll reconciliation rules and payout lock controls for restricted users.",
+    overview:
+      "This work stream upgrades salary reconciliation visibility, approval checkpoints, and restricted payout handling so finance operations remain accurate and secure.",
     members: 6,
+    objectives: [
+      "Improve payroll reconciliation reliability.",
+      "Introduce tighter payout approval controls.",
+      "Reduce month-end finance exceptions.",
+    ],
+    deliverables: [
+      "Reconciliation workflow updates",
+      "Restricted payout control rules",
+      "Exception tracking dashboard",
+    ],
+    stack: ["Finance rules", "Approval flows", "Payroll audit checkpoints"],
   },
 ];
 
@@ -648,6 +712,14 @@ export function getVisibleEmployees(role: Role) {
   return employeeRecords;
 }
 
+export function getProjectBySlug(slug: string) {
+  return projectRecords.find((project) => project.slug === slug);
+}
+
+export function getProjectByName(name: string) {
+  return projectRecords.find((project) => project.name === name);
+}
+
 function getCurrencyIcon(currency: string): LucideIcon {
   switch (currency) {
     case "INR":
@@ -769,6 +841,7 @@ export function getOverviewStats(role: Role) {
 export function getDashboardStatDrilldowns(role: Role): DashboardDrilldown[] {
   const visibleEmployees = getVisibleEmployees(role);
   const activeEmployee = getEmployeeForRole(role);
+  const activeProject = getProjectByName(activeEmployee.project);
 
   if (role === "employee") {
     return [
@@ -781,6 +854,7 @@ export function getDashboardStatDrilldowns(role: Role): DashboardDrilldown[] {
             title: activeEmployee.project,
             subtitle: `Managed by ${activeEmployee.manager}`,
             value: "Sprint 6 active",
+            href: activeProject ? `/portal/${role}/projects/${activeProject.slug}` : undefined,
           },
           {
             title: "Current Focus",
@@ -836,6 +910,7 @@ export function getDashboardStatDrilldowns(role: Role): DashboardDrilldown[] {
           subtitle: `${project.department} • Deadline ${project.deadline}`,
           value: `${project.members} members`,
           status: project.status,
+          href: `/portal/${role}/projects/${project.slug}`,
         })),
       },
       {

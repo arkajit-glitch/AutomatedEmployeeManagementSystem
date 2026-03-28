@@ -1,15 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DashboardStatGrid } from "@/components/portal/dashboard-stat-grid";
 import { PageHeader } from "@/components/portal/page-header";
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
-import {
-  employeeRecords,
-  getVisibleEmployees,
-  isRole,
-  projectRecords,
-  roleNames,
-} from "@/lib/data";
+import { isRole, roleNames } from "@/lib/data";
+import { getDashboardPayload, listEmployees, listProjects } from "@/lib/server/aems-service";
 import { formatCurrency, projectStatusClass } from "@/lib/utils";
 
 export default async function DashboardPage({
@@ -23,7 +19,9 @@ export default async function DashboardPage({
     notFound();
   }
 
-  const employees = getVisibleEmployees(role);
+  const employees = await listEmployees(role);
+  const projects = await listProjects(role);
+  const dashboard = await getDashboardPayload(role);
 
   return (
     <div className="space-y-6">
@@ -32,17 +30,29 @@ export default async function DashboardPage({
         title="A single command center for people, projects, payroll, and growth."
         description="The dashboard surfaces the metrics and actions that matter most to the signed-in role, while keeping private data locked behind the right access boundary."
         primaryAction={{
-          label: role === "employee" ? "Open my profile" : "Add employee",
+          label:
+            role === "employee"
+              ? "Open my profile"
+              : role === "manager"
+                ? "View employees"
+                : "Add employee",
           href:
             role === "employee"
               ? `/portal/${role}/employees/${employees[0]?.id}`
-              : `/portal/${role}/employees`,
-          hint: role === "employee" ? "Personal records" : "Create records",
+              : role === "manager"
+                ? `/portal/${role}/employees`
+                : `/portal/${role}/employees/new`,
+          hint:
+            role === "employee"
+              ? "Personal records"
+              : role === "manager"
+                ? "People records"
+                : "Create records",
         }}
         centered={role === "employee"}
       />
 
-      <DashboardStatGrid role={role} />
+      <DashboardStatGrid stats={dashboard.overviewStats} drilldowns={dashboard.drilldowns} />
 
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.95fr]">
         <SpotlightPanel className="p-6">
@@ -144,7 +154,7 @@ export default async function DashboardPage({
               </div>
             ) : (
               <div className="mt-6 space-y-4">
-                {employeeRecords.slice(0, 4).map((employee) => (
+                {employees.slice(0, 4).map((employee) => (
                   <div
                     key={employee.id}
                     className="flex items-center justify-between rounded-2xl border border-white/12 bg-white/8 px-4 py-4"
@@ -168,14 +178,21 @@ export default async function DashboardPage({
               Delivery Status Board
             </h2>
             <div className="mt-6 space-y-4">
-              {projectRecords.map((project) => (
+              {projects.map((project) => (
                 <div
                   key={project.name}
                   className="rounded-2xl border border-white/12 bg-white/8 p-4"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-white">{project.name}</p>
+                      <p className="text-sm font-semibold text-white">
+                        <Link
+                          href={`/portal/${role}/projects/${project.slug}`}
+                          className="transition hover:text-cyan-100"
+                        >
+                          {project.name}
+                        </Link>
+                      </p>
                       <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">
                         {project.department} • Lead {project.lead}
                       </p>

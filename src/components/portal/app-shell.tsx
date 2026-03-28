@@ -16,13 +16,20 @@ type AppShellProps = {
 export function AppShell({ role, children }: AppShellProps) {
   const [isPinned, setIsPinned] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const pathname = usePathname();
   const activeKey =
     navItems.find((item) => pathname.includes(`/${item.key}`))?.key ?? "dashboard";
   const isExpanded = isPinned || isHovered;
   const allowedItems = navItems.filter((item) => item.allowedRoles.includes(role));
 
-  const renderSidebar = (expanded: boolean, showToggle: boolean) => (
+  const renderSidebar = (
+    expanded: boolean,
+    showToggle: boolean,
+    onToggle?: () => void,
+    toggleTitle?: string,
+    showCollapsedNav = true,
+  ) => (
     <>
       <div
         className={cn(
@@ -53,12 +60,12 @@ export function AppShell({ role, children }: AppShellProps) {
         {showToggle ? (
           <button
             type="button"
-            onClick={() => setIsPinned((value) => !value)}
+            onClick={onToggle}
             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/12 bg-white/10 text-slate-200 transition hover:bg-white/14"
-            aria-label={isPinned ? "Set Sidebar To Auto Collapse" : "Pin Sidebar Open"}
-            title={isPinned ? "Set Sidebar To Auto Collapse" : "Pin Sidebar Open"}
+            aria-label={toggleTitle}
+            title={toggleTitle}
           >
-            {isPinned ? (
+            {expanded ? (
               <PanelLeftClose className="h-5 w-5" />
             ) : (
               <PanelLeftOpen className="h-5 w-5" />
@@ -75,7 +82,8 @@ export function AppShell({ role, children }: AppShellProps) {
         </div>
       ) : null}
 
-      <nav className={cn("mt-8 space-y-2", !expanded && "flex flex-col items-center")}>
+      {expanded || showCollapsedNav ? (
+        <nav className={cn("mt-8 space-y-2", !expanded && "flex flex-col items-center")}>
         {allowedItems.map((item) => {
           const Icon = item.icon;
           const label = role === "employee" && item.key === "employees" ? "My Profile" : item.label;
@@ -116,7 +124,8 @@ export function AppShell({ role, children }: AppShellProps) {
             </Link>
           );
         })}
-      </nav>
+        </nav>
+      ) : null}
 
       {expanded ? (
         <div className="mt-8 rounded-[26px] border border-amber-300/20 bg-amber-200/14 p-5">
@@ -142,7 +151,15 @@ export function AppShell({ role, children }: AppShellProps) {
               roleAccent[role],
             )}
           />
-          <div className="relative z-10">{renderSidebar(true, false)}</div>
+          <div className="relative z-10">
+            {renderSidebar(
+              isMobileExpanded,
+              true,
+              () => setIsMobileExpanded((value) => !value),
+              isMobileExpanded ? "Collapse Navigation" : "Expand Navigation",
+              false,
+            )}
+          </div>
         </aside>
 
         <aside
@@ -160,7 +177,12 @@ export function AppShell({ role, children }: AppShellProps) {
             )}
           />
           <div className={cn("relative z-10 h-full overflow-y-auto", isExpanded ? "p-6" : "p-4")}>
-            {renderSidebar(isExpanded, true)}
+            {renderSidebar(
+              isExpanded,
+              true,
+              () => setIsPinned((value) => !value),
+              isPinned ? "Set Sidebar To Auto Collapse" : "Pin Sidebar Open",
+            )}
           </div>
         </aside>
 

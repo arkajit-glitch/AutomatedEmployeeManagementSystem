@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { EmployeeCard } from "@/components/portal/employee-card";
 import { PageHeader } from "@/components/portal/page-header";
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
-import { getVisibleEmployees, isRole, roleNames } from "@/lib/data";
+import { isRole, roleNames } from "@/lib/data";
+import { listEmployees } from "@/lib/server/aems-service";
 import { formatCurrency } from "@/lib/utils";
 
 export default async function EmployeesPage({
@@ -17,7 +18,7 @@ export default async function EmployeesPage({
     notFound();
   }
 
-  const employees = getVisibleEmployees(role);
+  const employees = await listEmployees(role);
   const employee = role === "employee" ? employees[0] : undefined;
 
   return (
@@ -32,10 +33,11 @@ export default async function EmployeesPage({
           }
           description="Each profile combines contact details, achievements, documents, appraisals, salary hikes, salary renewals, contract renewals, and project assignments in one secure record."
           primaryAction={
-            role === "employee"
+            role === "employee" || role === "manager"
               ? undefined
               : {
                   label: "Add employee",
+                  href: `/portal/${role}/employees/new`,
                   hint: "Create record",
                 }
           }

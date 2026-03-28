@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { AccessDenied } from "@/components/portal/access-denied";
 import { PageHeader } from "@/components/portal/page-header";
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
-import { canAccess, employeeRecords, getVisibleEmployees, isRole, roleNames } from "@/lib/data";
+import { canAccess, isRole, roleNames } from "@/lib/data";
+import { listEmployees } from "@/lib/server/aems-service";
 import { formatCompactCurrency, formatCurrency } from "@/lib/utils";
 
 export default async function PayrollPage({
@@ -26,8 +27,8 @@ export default async function PayrollPage({
     );
   }
 
-  const employees = getVisibleEmployees(role);
-  const payoutTotal = employeeRecords.reduce((sum, employee) => sum + employee.salary, 0);
+  const employees = await listEmployees(role);
+  const payoutTotal = employees.reduce((sum, employee) => sum + employee.salary, 0);
 
   return (
     <div className="space-y-6">
