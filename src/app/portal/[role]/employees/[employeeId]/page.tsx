@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AccessDenied } from "@/components/portal/access-denied";
-import { PageHeader } from "@/components/portal/page-header";
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
 import { StatusPill } from "@/components/ui/status-pill";
 import { getProjectByName, isRole, roleNames } from "@/lib/data";
@@ -38,11 +37,20 @@ export default async function EmployeeDetailPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={`${roleNames[role]} workspace`}
-        title={`${employee.name} • complete employee lifecycle`}
-        description="This page ties together profile details, achievements, appraisals, hikes, salary and contract renewals, documents, project assignments, and private payment visibility."
-      />
+      <div className="relative flex flex-col gap-6 xl:min-h-[144px]">
+        <div className="mx-auto flex max-w-3xl flex-col items-center space-y-3 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">
+            {`${roleNames[role]} workspace`}
+          </p>
+          <h1 className="max-w-3xl font-heading text-3xl text-white sm:text-4xl">
+            {`${employee.name} • complete employee lifecycle`}
+          </h1>
+          <p className="max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+            This page ties together profile details, achievements, appraisals, hikes, salary and
+            contract renewals, documents, project assignments, and private payment visibility.
+          </p>
+        </div>
+      </div>
 
       <SpotlightPanel className="p-6">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
@@ -274,6 +282,64 @@ export default async function EmployeeDetailPage({
                 Current manager: {employee.manager}. Status updates and daily progress stay visible
                 according to the signed-in role.
               </p>
+            </div>
+          </SpotlightPanel>
+
+          <SpotlightPanel className="p-6">
+            <h3 className="font-heading text-2xl text-white">Employee review</h3>
+            <div className="mt-4 space-y-4">
+              <div className="rounded-[24px] border border-white/12 bg-white/8 p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">Manager review</p>
+                <p className="mt-3 text-xl font-semibold text-white">
+                  Rating: <span className="text-amber-200">★★★★</span>
+                  <span className="ml-0.5 text-transparent [text-stroke:1px_rgba(226,232,240,0.85)] [-webkit-text-stroke:1px_rgba(226,232,240,0.85)]">
+                    ★
+                  </span>
+                </p>
+                <p className="mt-3 text-sm leading-7 text-slate-300">
+                  Manager feedback: Consistent performer with strong ownership.
+                </p>
+                <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500">
+                  Last review date: Mar 2026
+                </p>
+              </div>
+
+              <div className="rounded-[24px] border border-white/12 bg-white/8 p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/70">
+                  Anonymous review
+                </p>
+                {role === "employee" ? (
+                  <>
+                    <p className="mt-3 text-sm leading-7 text-slate-300">
+                      &quot;Supportive teammate, dependable in delivery, and calm under pressure
+                      during deadline weeks.&quot;
+                    </p>
+                    <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500">
+                      Employee read-only view
+                    </p>
+                  </>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-sm leading-7 text-slate-300">
+                      Add anonymous feedback here. Employees can read this section, but only
+                      Owner, HR, and Manager roles can write into it.
+                    </p>
+                    <textarea
+                      rows={4}
+                      placeholder="Write anonymous feedback here..."
+                      className="w-full rounded-2xl border border-white/12 bg-slate-950/40 px-4 py-3 text-sm text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40"
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        className="rounded-full border border-cyan-300/25 bg-cyan-300/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-50 transition hover:border-cyan-200/40 hover:bg-cyan-300/18"
+                      >
+                        Add review
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </SpotlightPanel>
         </div>

@@ -1,12 +1,29 @@
 "use client";
 
-import { LucideIcon } from "lucide-react";
+import {
+  Bell,
+  BriefcaseBusiness,
+  CalendarClock,
+  CircleDollarSign,
+  Coins,
+  DollarSign,
+  Euro,
+  FileCheck2,
+  IndianRupee,
+  JapaneseYen,
+  PoundSterling,
+  ShieldCheck,
+  UserRound,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import { SpotlightPanel } from "@/components/ui/spotlight-panel";
+import { type DashboardStatRecord } from "@/lib/server/aems-service";
 import { cn } from "@/lib/utils";
 
 type StatCardProps = {
-  icon: LucideIcon;
+  iconName: DashboardStatRecord["iconName"];
   label: string;
   value: string;
   helper: string;
@@ -14,14 +31,33 @@ type StatCardProps = {
   isActive?: boolean;
 };
 
+const iconMap: Record<DashboardStatRecord["iconName"], LucideIcon> = {
+  bell: Bell,
+  "briefcase-business": BriefcaseBusiness,
+  "calendar-clock": CalendarClock,
+  "circle-dollar-sign": CircleDollarSign,
+  coins: Coins,
+  "dollar-sign": DollarSign,
+  euro: Euro,
+  "file-check-2": FileCheck2,
+  "indian-rupee": IndianRupee,
+  "japanese-yen": JapaneseYen,
+  "pound-sterling": PoundSterling,
+  "shield-check": ShieldCheck,
+  "user-round": UserRound,
+  "users-round": UsersRound,
+};
+
 export function StatCard({
-  icon: Icon,
+  iconName,
   label,
   value,
   helper,
   onIconClick,
   isActive = false,
 }: StatCardProps) {
+  const Icon = iconMap[iconName];
+
   return (
     <SpotlightPanel className="h-full p-5">
       <div className="flex items-start justify-between gap-4">

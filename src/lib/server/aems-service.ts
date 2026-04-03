@@ -1,20 +1,3 @@
-import {
-  Bell,
-  BriefcaseBusiness,
-  CalendarClock,
-  CircleDollarSign,
-  Coins,
-  DollarSign,
-  Euro,
-  FileCheck2,
-  IndianRupee,
-  JapaneseYen,
-  PoundSterling,
-  ShieldCheck,
-  UserRound,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react";
 import { Prisma } from "@prisma/client";
 
 import {
@@ -22,8 +5,6 @@ import {
   type DashboardDrilldown,
   departmentRecords,
   employeeRecords,
-  getDashboardStatDrilldowns,
-  getOverviewStats,
   getVisibleEmployees,
   isRole,
   type PortalSection,
@@ -33,9 +14,11 @@ import {
 } from "@/lib/data";
 import { getPrismaClient, prisma } from "@/lib/prisma";
 import {
+  createCalendarTaskSchema,
   createDepartmentSchema,
   createEmployeeSchema,
   createProjectSchema,
+  updateCalendarTaskSchema,
   updateDepartmentSchema,
   updateProjectSchema,
 } from "@/lib/server/validators";
@@ -128,7 +111,21 @@ export type DashboardStatRecord = {
   label: string;
   value: string;
   helper: string;
-  icon: LucideIcon;
+  iconName:
+    | "briefcase-business"
+    | "calendar-clock"
+    | "circle-dollar-sign"
+    | "coins"
+    | "dollar-sign"
+    | "euro"
+    | "file-check-2"
+    | "indian-rupee"
+    | "japanese-yen"
+    | "pound-sterling"
+    | "shield-check"
+    | "user-round"
+    | "users-round"
+    | "bell";
 };
 
 export type ReportHighlightRecord = {
@@ -188,6 +185,16 @@ export type CreateEmployeeInput = {
   contractExpiry: string;
 };
 
+export type CalendarTaskApiRecord = {
+  id: string;
+  title: string;
+  dateKey: string;
+  time: string;
+  createdByRole: Role;
+  createdAt: string;
+  updatedAt: string;
+};
+
 function formatDate(value: Date | string) {
   if (typeof value === "string") {
     return value;
@@ -198,6 +205,25 @@ function formatDate(value: Date | string) {
     month: "short",
     year: "numeric",
   }).format(value);
+}
+
+function formatDateKey(value: Date | string) {
+  const parsed = typeof value === "string" ? new Date(value) : value;
+  const year = parsed.getFullYear();
+  const month = `${parsed.getMonth() + 1}`.padStart(2, "0");
+  const day = `${parsed.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatTimeValue(value: Date | string) {
+  const parsed = typeof value === "string" ? new Date(value) : value;
+
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(parsed);
 }
 
 function titleCaseEnum(value: string) {
@@ -248,6 +274,10 @@ function normalizeAccessRoleForDatabase(accessRole: Role) {
   return accessRole.toUpperCase() as "OWNER" | "HR" | "MANAGER" | "EMPLOYEE";
 }
 
+function parseCalendarDateTime(dateKey: string, time: string) {
+  return new Date(`${dateKey}T${time}:00`);
+}
+
 function getAvatarFromName(name: string) {
   return name
     .split(" ")
@@ -274,20 +304,20 @@ function getNextEmployeeCode() {
   return `EMP-${String(maxCode + 1).padStart(3, "0")}`;
 }
 
-function getCurrencyIcon(currency: string): LucideIcon {
+function getCurrencyIconName(currency: string): DashboardStatRecord["iconName"] {
   switch (currency) {
     case "INR":
-      return IndianRupee;
+      return "indian-rupee";
     case "USD":
-      return DollarSign;
+      return "dollar-sign";
     case "EUR":
-      return Euro;
+      return "euro";
     case "GBP":
-      return PoundSterling;
+      return "pound-sterling";
     case "JPY":
-      return JapaneseYen;
+      return "japanese-yen";
     default:
-      return Coins;
+      return "coins";
   }
 }
 
@@ -341,19 +371,19 @@ function buildDashboardStats(
         label: "Current project",
         value: activeEmployee.project,
         helper: `Managed by ${activeEmployee.manager}`,
-        icon: BriefcaseBusiness,
+        iconName: "briefcase-business",
       },
       {
         label: "Latest payout",
         value: formatCompactCurrency(activeEmployee.latestPayout, activeEmployee.currency),
         helper: `Next salary scheduled for ${activeEmployee.transactions[0]?.date ?? activeEmployee.nextRenewal}`,
-        icon: getCurrencyIcon(activeEmployee.currency),
+        iconName: getCurrencyIconName(activeEmployee.currency),
       },
       {
         label: "Last appraisal",
         value: activeEmployee.appraisal.rating,
         helper: `${activeEmployee.lastHikePercent}% hike approved in the latest cycle`,
-        icon: ShieldCheck,
+        iconName: "shield-check",
       },
     ];
   }
@@ -364,19 +394,19 @@ function buildDashboardStats(
         label: "Projects active",
         value: String(projects.length).padStart(2, "0"),
         helper: `${projects.filter((project) => project.status === "At Risk").length} flagged for review`,
-        icon: BriefcaseBusiness,
+        iconName: "briefcase-business",
       },
       {
         label: "Team visibility",
         value: String(employees.length),
         helper: "Employees visible in manager scope",
-        icon: UserRound,
+        iconName: "user-round",
       },
       {
         label: "Daily updates",
         value: "04",
         helper: "HR and project logs synced today",
-        icon: Bell,
+        iconName: "bell",
       },
     ];
   }
@@ -386,31 +416,31 @@ function buildDashboardStats(
   const payoutTotal = employees.reduce((sum, employee) => sum + employee.salary, 0);
 
   return [
-    {
-      label: "Employees tracked",
-      value: String(employees.length).padStart(2, "0"),
-      helper: `Across ${new Set(employees.map((employee) => employee.department)).size} active departments`,
-      icon: UsersRound,
-    },
-    {
-      label: "Documents verified",
-      value: `${documentMetrics.percentage}%`,
-      helper: `${documentMetrics.verified}/${documentMetrics.total} employee documents verified`,
-      icon: FileCheck2,
-    },
-    {
-      label: "Renewals due",
-      value: String(renewalsDue).padStart(2, "0"),
-      helper: "Salary or contract actions pending",
-      icon: CalendarClock,
-    },
-    {
-      label: "Monthly payout",
-      value: formatCompactCurrency(payoutTotal),
-      helper: "Secure payroll processing in progress",
-      icon: CircleDollarSign,
-    },
-  ];
+      {
+        label: "Employees tracked",
+        value: String(employees.length).padStart(2, "0"),
+        helper: `Across ${new Set(employees.map((employee) => employee.department)).size} active departments`,
+        iconName: "users-round",
+      },
+      {
+        label: "Documents verified",
+        value: `${documentMetrics.percentage}%`,
+        helper: `${documentMetrics.verified}/${documentMetrics.total} employee documents verified`,
+        iconName: "file-check-2",
+      },
+      {
+        label: "Renewals due",
+        value: String(renewalsDue).padStart(2, "0"),
+        helper: "Salary or contract actions pending",
+        iconName: "calendar-clock",
+      },
+      {
+        label: "Monthly payout",
+        value: formatCompactCurrency(payoutTotal),
+        helper: "Secure payroll processing in progress",
+        iconName: "circle-dollar-sign",
+      },
+    ];
 }
 
 function buildDashboardDrilldowns(
@@ -596,6 +626,46 @@ function accessRoleFromDb(value: string): Role {
 
 function getBackendMode(): BackendMode {
   return process.env.DATABASE_URL && prisma ? "database" : "demo";
+}
+
+let demoCalendarTasks: CalendarTaskApiRecord[] = [
+  {
+    id: "demo-calendar-review-pulse",
+    title: "Review payroll pulse",
+    dateKey: formatDateKey(new Date()),
+    time: "09:30",
+    createdByRole: "hr",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-calendar-doc-followup",
+    title: "Follow up on pending documents",
+    dateKey: formatDateKey(new Date()),
+    time: "14:00",
+    createdByRole: "manager",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+function mapDatabaseCalendarTask(task: {
+  id: string;
+  title: string;
+  scheduledFor: Date;
+  createdByRole: string;
+  createdAt: Date;
+  updatedAt: Date;
+}): CalendarTaskApiRecord {
+  return {
+    id: task.id,
+    title: task.title,
+    dateKey: formatDateKey(task.scheduledFor),
+    time: formatTimeValue(task.scheduledFor),
+    createdByRole: accessRoleFromDb(task.createdByRole),
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
 }
 
 function getRoleScopedDemoEmployees(role: Role) {
@@ -1522,6 +1592,159 @@ export async function deleteProject(role: Role, projectSlug: string) {
   return { persisted: true };
 }
 
+export async function listCalendarTasks(): Promise<CalendarTaskApiRecord[]> {
+  if (getBackendMode() === "demo") {
+    return [...demoCalendarTasks].sort((left, right) =>
+      `${left.dateKey}-${left.time}`.localeCompare(`${right.dateKey}-${right.time}`),
+    );
+  }
+
+  const db = getPrismaClient();
+  const tasks = await db.calendarTask.findMany({
+    orderBy: [{ scheduledFor: "asc" }, { createdAt: "asc" }],
+  });
+
+  return tasks.map(mapDatabaseCalendarTask);
+}
+
+export async function createCalendarTask(role: Role, payload: {
+  title: string;
+  dateKey: string;
+  time: string;
+}) {
+  const parsed = createCalendarTaskSchema.parse(payload);
+
+  if (getBackendMode() === "demo") {
+    const task: CalendarTaskApiRecord = {
+      id: `demo-calendar-${Date.now()}`,
+      title: parsed.title,
+      dateKey: parsed.dateKey,
+      time: parsed.time,
+      createdByRole: role,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    demoCalendarTasks = [...demoCalendarTasks, task];
+
+    return {
+      persisted: false,
+      task,
+    };
+  }
+
+  const db = getPrismaClient();
+  const created = await db.calendarTask.create({
+    data: {
+      title: parsed.title,
+      scheduledFor: parseCalendarDateTime(parsed.dateKey, parsed.time),
+      createdByRole: normalizeAccessRoleForDatabase(role),
+    },
+  });
+
+  return {
+    persisted: true,
+    task: mapDatabaseCalendarTask(created),
+  };
+}
+
+export async function updateCalendarTask(
+  role: Role,
+  taskId: string,
+  payload: Partial<{ title: string; dateKey: string; time: string }>,
+) {
+  const parsed = updateCalendarTaskSchema.parse(payload);
+
+  if (getBackendMode() === "demo") {
+    const current = demoCalendarTasks.find((task) => task.id === taskId);
+
+    if (!current) {
+      throw new Error("NOT_FOUND");
+    }
+
+    const updatedTask: CalendarTaskApiRecord = {
+      ...current,
+      title: parsed.title ?? current.title,
+      dateKey: parsed.dateKey ?? current.dateKey,
+      time: parsed.time ?? current.time,
+      createdByRole: role,
+      updatedAt: new Date().toISOString(),
+    };
+
+    demoCalendarTasks = demoCalendarTasks.map((task) => (task.id === taskId ? updatedTask : task));
+
+    return {
+      persisted: false,
+      task: updatedTask,
+    };
+  }
+
+  const db = getPrismaClient();
+  const current = await db.calendarTask.findUnique({
+    where: {
+      id: taskId,
+    },
+  });
+
+  if (!current) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const currentDateKey = formatDateKey(current.scheduledFor);
+  const currentTime = formatTimeValue(current.scheduledFor);
+  const nextDateKey = parsed.dateKey ?? currentDateKey;
+  const nextTime = parsed.time ?? currentTime;
+
+  const updated = await db.calendarTask.update({
+    where: {
+      id: taskId,
+    },
+    data: {
+      title: parsed.title,
+      scheduledFor:
+        parsed.dateKey || parsed.time ? parseCalendarDateTime(nextDateKey, nextTime) : undefined,
+      createdByRole: normalizeAccessRoleForDatabase(role),
+    },
+  });
+
+  return {
+    persisted: true,
+    task: mapDatabaseCalendarTask(updated),
+  };
+}
+
+export async function deleteCalendarTask(taskId: string) {
+  if (getBackendMode() === "demo") {
+    const exists = demoCalendarTasks.some((task) => task.id === taskId);
+
+    if (!exists) {
+      throw new Error("NOT_FOUND");
+    }
+
+    demoCalendarTasks = demoCalendarTasks.filter((task) => task.id !== taskId);
+
+    return { persisted: false };
+  }
+
+  const db = getPrismaClient();
+
+  try {
+    await db.calendarTask.delete({
+      where: {
+        id: taskId,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      throw new Error("NOT_FOUND");
+    }
+
+    throw error;
+  }
+
+  return { persisted: true };
+}
+
 export async function getDashboardPayload(role: Role) {
   const allowedSections: PortalSection[] = [
     "dashboard",
@@ -1539,12 +1762,8 @@ export async function getDashboardPayload(role: Role) {
     roleName: roleNames[role],
     backendMode: getBackendMode(),
     allowedSections: allowedSections.filter((section) => canAccess(role, section)),
-    overviewStats:
-      getBackendMode() === "demo" ? getOverviewStats(role) : buildDashboardStats(role, employees, projects),
-    drilldowns:
-      getBackendMode() === "demo"
-        ? getDashboardStatDrilldowns(role)
-        : buildDashboardDrilldowns(role, employees, projects),
+    overviewStats: buildDashboardStats(role, employees, projects),
+    drilldowns: buildDashboardDrilldowns(role, employees, projects),
     visibleEmployeeCount: employees.length,
     visibleProjectCount: projects.length,
   };

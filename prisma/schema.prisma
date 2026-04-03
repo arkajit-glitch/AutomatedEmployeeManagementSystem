@@ -191,3 +191,12 @@ model ProjectAssignment {
 
   @@unique([employeeId, projectId])
 }
+
+model CalendarTask {
+  id            String     @id @default(cuid())
+  title         String
+  scheduledFor  DateTime
+  createdByRole AccessRole
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}

@@ -86,6 +86,18 @@ export const updateProjectSchema = createProjectSchema.partial().extend({
   stack: z.array(z.string().trim().min(1)).min(1).optional(),
 });
 
+export const createCalendarTaskSchema = z.object({
+  title: z.string().trim().min(2, "Task title is required."),
+  dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format."),
+  time: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format."),
+});
+
+export const updateCalendarTaskSchema = createCalendarTaskSchema
+  .partial()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "Provide at least one task field to update.",
+  });
+
 export function parseRoleQuery(role: string | null) {
   return roleQuerySchema.safeParse({
     role: role ?? "owner",

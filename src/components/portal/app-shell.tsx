@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Bell, PanelLeftClose, PanelLeftOpen, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 
+import { LiveDateCapsule } from "@/components/portal/live-date-capsule";
 import { navItems, Role, roleAccent, roleNames, roleTaglines } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
@@ -201,9 +202,7 @@ export function AppShell({ role, children }: AppShellProps) {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="rounded-full border border-white/12 bg-white/8 px-4 py-3 text-sm text-slate-200">
-                  Friday sync - 27 Mar 2026
-                </div>
+                <LiveDateCapsule role={role} />
                 <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/12 bg-white/8 text-slate-100">
                   <Bell className="h-4 w-4" />
                 </div>
